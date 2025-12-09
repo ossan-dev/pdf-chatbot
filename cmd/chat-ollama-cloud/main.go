@@ -7,6 +7,8 @@ import (
 	"github.com/ollama/ollama/api"
 )
 
+// TODO: emulate a chat here by questioning and answering with the AI-support.
+
 func main() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()

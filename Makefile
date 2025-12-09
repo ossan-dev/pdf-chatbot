@@ -6,3 +6,9 @@ multiple-extract-from-img:
 
 chat-ollama-cloud:
 	go build -o app cmd/chat-ollama-cloud/main.go
+
+chat-ollama-cloud-img:
+	go build -o app cmd/chat-ollama-cloud-img/main.go
+
+show-ollama-logs:
+	journalctl -u ollama --no-pager --follow --pager-end
