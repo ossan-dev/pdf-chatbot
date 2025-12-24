@@ -5,39 +5,64 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"image"
 	"image/png"
 	"io"
 	"os"
 	"strings"
 
-	"github.com/nfnt/resize"
 	"github.com/ollama/ollama/api"
 )
+
+type Tile struct {
+	Rect image.Rectangle
+	Img  image.Image
+}
+
+type SubImager interface {
+	SubImage(image.Rectangle) image.Image
+}
+
+func GetTilesFromImg(r io.Reader, tileWidth, tileHeight, overlap int) ([]Tile, error) {
+	tiles := make([]Tile, 0, 1000)
+	img, err := png.Decode(r)
+	if err != nil {
+		return nil, err
+	}
+
+	rect := img.Bounds()
+	imgWidth := rect.Dx()
+	imgHeight := rect.Dy()
+
+	for y := 0; y <= imgHeight; y += tileHeight - overlap {
+		for x := 0; x <= imgWidth; x += tileWidth - overlap {
+			tileX := x
+			tileY := y
+			tileHeight := tileHeight
+			tileWidth := tileWidth
+			if tileX+tileWidth > imgWidth {
+				tileWidth = imgWidth - x
+			}
+			if tileY+tileHeight > imgHeight {
+				tileHeight = imgHeight - y
+			}
+			tileBounds := image.Rect(tileX, tileY, tileX+tileWidth, tileY+tileHeight)
+			tileImg := img.(SubImager).SubImage(tileBounds)
+			tile := Tile{
+				Rect: tileBounds,
+				Img:  tileImg,
+			}
+			tiles = append(tiles, tile)
+		}
+	}
+	return tiles, nil
+}
 
 func main() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 
-	// 1. preparing the image
-	imgFile, err := os.Open("/home/ossan/Projects/pdf-chatbot/imgs/Booking-1.png")
-	if err != nil {
-		panic(err)
-	}
-	defer imgFile.Close()
-
-	image, err := png.Decode(imgFile)
-	if err != nil {
-		panic(err)
-	}
-
-	img := resize.Resize(448, 448, image, resize.Lanczos2)
-
-	buf := new(bytes.Buffer)
-	if err := png.Encode(buf, img); err != nil {
-		panic(err)
-	}
-
-	// 2. get Ollama client
+	// 1. get Ollama client
 	client, err := api.ClientFromEnvironment()
 	if err != nil {
 		panic(err)
@@ -47,7 +72,31 @@ func main() {
 		panic(err)
 	}
 
+	// 2. preparing the image
+	imgFile, err := os.Open("/home/ossan/Projects/pdf-chatbot/imgs/booking.png")
+	if err != nil {
+		panic(err)
+	}
+	defer imgFile.Close()
+
+	tiles, err := GetTilesFromImg(imgFile, 448, 448, 50)
+	if err != nil {
+		panic(err)
+	}
+
 	// 3. setup Ollama request
+
+	images := make([]api.ImageData, 0)
+	for _, v := range tiles {
+		buf := new(bytes.Buffer)
+		if err := png.Encode(buf, v.Img); err != nil {
+			panic(err)
+		}
+		images = append(images, api.ImageData(buf.Bytes()))
+	}
+
+	// img := resize.Resize(448, 448, image, resize.Lanczos2)
+
 	messages := []api.Message{
 		{
 			Role: "system",
@@ -59,9 +108,7 @@ func main() {
 		},
 		{Role: "user",
 			Content: "Extract the text from this image exactly as it appears",
-			Images: []api.ImageData{
-				api.ImageData(buf.Bytes()),
-			},
+			Images:  images,
 		},
 	}
 
