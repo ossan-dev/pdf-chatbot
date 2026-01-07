@@ -23,15 +23,24 @@ func main() {
 		panic(err)
 	}
 
+	// prepare Ollama request
 	falsePtr := false
 	req := &api.ChatRequest{
 		Model: "qwen3-vl:235b-cloud",
 		Messages: []api.Message{
-			{Role: "user", Content: "Why Go is coolest programming language?"},
+			{Role: "system",
+				Content: `You're Rob Pike. You're talking to a junior software engineer who cheers for Java.
+Use anedoctes, jokes, be creative, but concise.`,
+			},
+			{
+				Role:    "user",
+				Content: "Why Go is coolest programming language?",
+			},
 		},
 		Stream: &falsePtr,
 	}
 
+	// set handler for the response
 	chatFunc := func(resp api.ChatResponse) error {
 		fmt.Println(resp.Message.Content)
 		return nil

@@ -14,45 +14,42 @@ import (
 	"github.com/ollama/ollama/api"
 )
 
-type Tile struct {
-	Rect image.Rectangle
-	Img  image.Image
-}
-
+// SubImager abstracts the SubImage method on the various image type
+// eg. RGBA, RGBA64, Gray, Gray16, Alpha, Alpha16, etc.
 type SubImager interface {
 	SubImage(image.Rectangle) image.Image
 }
 
-func GetTilesFromImg(r io.Reader, tileWidth, tileHeight, overlap int) ([]Tile, error) {
-	tiles := make([]Tile, 0, 1000)
-	img, err := png.Decode(r)
-	if err != nil {
-		return nil, err
-	}
+// GetTilesFromImg is the algorithm used to tile up the image
+func GetTilesFromImg(img image.Image, tileWidth, tileHeight, overlap int) ([]image.Image, error) {
+	tiles := make([]image.Image, 0, 1000)
 
+	// 1. returns width, height
 	rect := img.Bounds()
 	imgWidth := rect.Dx()
 	imgHeight := rect.Dy()
 
+	// 2. moving vertically (from top to bottom)
 	for y := 0; y <= imgHeight; y += tileHeight - overlap {
+		// 3. moving horizontally (from left to right)
 		for x := 0; x <= imgWidth; x += tileWidth - overlap {
 			tileX := x
 			tileY := y
 			tileHeight := tileHeight
 			tileWidth := tileWidth
+			// 4. avoid exceeding horizontal boundary
 			if tileX+tileWidth > imgWidth {
 				tileWidth = imgWidth - x
 			}
+			// 5. avoid exceeding vertical boundary
 			if tileY+tileHeight > imgHeight {
 				tileHeight = imgHeight - y
 			}
+			// 6. defining tile
 			tileBounds := image.Rect(tileX, tileY, tileX+tileWidth, tileY+tileHeight)
+			// 7. slicing the current tile from the img
 			tileImg := img.(SubImager).SubImage(tileBounds)
-			tile := Tile{
-				Rect: tileBounds,
-				Img:  tileImg,
-			}
-			tiles = append(tiles, tile)
+			tiles = append(tiles, tileImg)
 		}
 	}
 	return tiles, nil
@@ -79,33 +76,31 @@ func main() {
 	}
 	defer imgFile.Close()
 
-	tiles, err := GetTilesFromImg(imgFile, 448, 448, 50)
+	img, err := png.Decode(imgFile)
 	if err != nil {
 		panic(err)
 	}
 
-	// 3. setup Ollama request
+	// 1. getting tiles from the image
+	// (img, width, height, overlap)
+	tiles, err := GetTilesFromImg(img, 448, 448, 50)
+	if err != nil {
+		panic(err)
+	}
 
+	// 2. consolidating the tiles
 	images := make([]api.ImageData, 0)
 	for _, v := range tiles {
 		buf := new(bytes.Buffer)
-		if err := png.Encode(buf, v.Img); err != nil {
+		if err := png.Encode(buf, v); err != nil {
 			panic(err)
 		}
 		images = append(images, api.ImageData(buf.Bytes()))
 	}
 
-	// img := resize.Resize(448, 448, image, resize.Lanczos2)
-
+	// 3. adding tiles to the context
 	messages := []api.Message{
-		{
-			Role: "system",
-			Content: "You are a literal OCR engine. Your only job is to extract text from images. " +
-				"Rule 1: Never guess or invent data. " +
-				"Rule 2: If a field is present but unreadable, write [UNREADABLE]. " +
-				"Rule 3: If a field is missing, write [NOT FOUND]. " +
-				"Rule 4: Output only the extracted text without any conversational preamble.",
-		},
+		// ... omitted for brevity
 		{Role: "user",
 			Content: "Extract the text from this image exactly as it appears",
 			Images:  images,

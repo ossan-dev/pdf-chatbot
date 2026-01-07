@@ -32,9 +32,8 @@ func main() {
 
 	// prepare Ollama request
 	req := &api.GenerateRequest{
-		Model:  "qwen3-vl:2b",
-		Prompt: "Extract from the image the name of Ivan's favorite football team.",
-		// Prompt: "Estrai dall'immagine il nome del team di calcio preferito di Ivan Pesenti.",
+		Model:  "qwen3-vl:235b-cloud",
+		Prompt: "Extract the name of the Favorite Football Team from the image.",
 		Images: []api.ImageData{imgData},
 	}
 
@@ -49,7 +48,7 @@ func main() {
 		return nil
 	}
 
-	// get response from Ollama
+	// get response from Ollama client
 	err = client.Generate(ctx, req, respFunc)
 	if err != nil {
 		panic(err)

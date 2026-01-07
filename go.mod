@@ -2,9 +2,10 @@ module pdfchatbot
 
 go 1.25.3
 
-require github.com/ollama/ollama v0.13.3-rc0
-
-replace github.com/ollama/ollama => ../ollama
+require (
+	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
+	github.com/ollama/ollama v0.13.3-rc0
+)
 
 require (
 	github.com/google/uuid v1.6.0 // indirect

@@ -1,0 +1,45 @@
+Hey Claude,
+
+I applied for a conference happening in March 2025. The CFP I used is available at this link: https://sessionize.com/s/ossan/ocr-magic-in-go-build-ai-powered-text-extraction-w/156395
+
+I put together the repo `pdf-chatbot` to help me in the content delivery.
+
+The main technologies used are:
+
+- Go
+- Ollama
+- vLLMs
+
+The goal of this project is using OCR to query and extract information from a PDF masked as a PNG.
+
+The journey has been:
+
+- starting with a local LLM
+- interaction with a local LLM via the `generate` Ollama endpoint
+- interaction with a cloud LLM via the `generate` Ollama endpoint
+- started to use the a local LLM via the `chat` Ollama endpoint
+- here we faced a lot of problems:
+  - images too big. We started by reducing the image size
+  - ollama was not that verbose with logs
+  - tweaked ollama settings
+  - tweaked some model options to avoid hallucinations
+  - tweaked the used prompts
+  - cropping the image to the desired section
+  - image resize via a 3-party Go package
+- we were able to read super trivial PDF
+- we wanted more
+- tiling approach combined with cloud vLLMs
+
+Everything should be put in a storytelling mode to emphasize inefficiences and difficulties.
+Mainly it was due to the constrained machine I was using.
+
+Be sure to leave time to introduce a bit the topics I'm talking about.
+
+The session should be 40-minute long.
+
+Can you provide the outline (slide-by-slide) of what I should cover.
+Put some jokes from time to time and make fun of myself as well.
+Leave some space for a recorded demo of how this work (ideally 30 minutes for each milestone).
+I want you to be as accurate as possible.
+
+My presentation style consists of frequent slide change. I prefer to keep each slide lean and focused. Don't want too bloat each slide with wall of text or plenty of concepts.
